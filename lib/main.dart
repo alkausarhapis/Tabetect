@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:tabetect/screen/home_screen.dart';
 import 'package:tabetect/styles/theme/app_theme.dart';
 
-// TODO: Recheck unnecessary comments
-// TODO: Readme
-
 void main() {
   runApp(const MainApp());
 }
