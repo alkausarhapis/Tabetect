@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tabetect/screen/home_screen.dart';
 import 'package:tabetect/styles/theme/app_theme.dart';
 
 void main() {
@@ -16,15 +17,8 @@ class MainApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode:
           ThemeMode.system, // Automatically switches based on system setting
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Tabetect')),
-        body: Center(
-          child: ElevatedButton(
-            onPressed: () {},
-            child: const Text('Press Me'),
-          ),
-        ),
-      ),
+      home: const HomeScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
