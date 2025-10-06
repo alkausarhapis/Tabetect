@@ -13,7 +13,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return FoodResponse.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception("Failed to load food detail");
+      throw Exception("Failed to load food details from API");
     }
   }
 }

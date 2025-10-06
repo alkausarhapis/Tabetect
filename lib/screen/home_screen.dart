@@ -7,7 +7,7 @@ import 'package:tabetect/provider/home_provider.dart';
 import 'package:tabetect/provider/image_classification_provider.dart';
 import 'package:tabetect/screen/food_detail_screen.dart';
 import 'package:tabetect/service/image_classification_service.dart';
-import 'package:tabetect/static/classifications_state.dart';
+import 'package:tabetect/static/food_classification_state.dart';
 import 'package:tabetect/static/global_state.dart';
 import 'package:tabetect/styles/colors/app_color.dart';
 
@@ -50,7 +50,7 @@ class _HomeViewState extends State<_HomeView> {
 
   @override
   void dispose() {
-    classificationProvider.close();
+    classificationProvider.closeClassificationService();
     super.dispose();
   }
 
@@ -68,7 +68,7 @@ class _HomeViewState extends State<_HomeView> {
   void _analyzeImage(String imagePath) async {
     try {
       final bytes = await File(imagePath).readAsBytes();
-      await classificationProvider.runClassifications(bytes);
+      await classificationProvider.classifyFoodImage(bytes);
     } catch (e) {
       if (!mounted) return;
       context.read<GlobalState>().setError(
@@ -88,8 +88,8 @@ class _HomeViewState extends State<_HomeView> {
 
   void _cropCurrentImage() {
     final homeProvider = context.read<HomeProvider>();
-    if (homeProvider.imageFile != null) {
-      homeProvider.cropExistingImage();
+    if (homeProvider.selectedImageFile != null) {
+      homeProvider.cropCurrentImage();
     }
   }
 
@@ -108,7 +108,8 @@ class _HomeViewState extends State<_HomeView> {
               Expanded(
                 flex: 3,
                 child: GestureDetector(
-                  onTap: () => context.read<HomeProvider>().openGallery(),
+                  onTap: () =>
+                      context.read<HomeProvider>().selectImageFromGallery(),
                   child: Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
@@ -121,7 +122,7 @@ class _HomeViewState extends State<_HomeView> {
                     ),
                     child: Consumer<HomeProvider>(
                       builder: (context, homeProvider, child) {
-                        return homeProvider.imagePath == null
+                        return homeProvider.selectedImagePath == null
                             ? Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -144,7 +145,7 @@ class _HomeViewState extends State<_HomeView> {
                             : ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
                                 child: Image.file(
-                                  File(homeProvider.imagePath!),
+                                  File(homeProvider.selectedImagePath!),
                                   width: double.infinity,
                                   height: double.infinity,
                                   fit: BoxFit.cover,
@@ -161,9 +162,9 @@ class _HomeViewState extends State<_HomeView> {
               // Recognition Result
               Consumer2<ImageClassificationProvider, HomeProvider>(
                 builder: (context, classificationProvider, homeProvider, child) {
-                  if (classificationProvider.classification.isNotEmpty) {
+                  if (classificationProvider.topFoodPrediction.isNotEmpty) {
                     final entry =
-                        classificationProvider.classification.entries.first;
+                        classificationProvider.topFoodPrediction.entries.first;
                     final foodName = entry.key;
                     final confidence = entry.value.toDouble();
                     final confidenceColor = _getConfidenceColor(confidence);
@@ -212,7 +213,7 @@ class _HomeViewState extends State<_HomeView> {
                             child: ElevatedButton.icon(
                               onPressed: () => _navigateToDetail(
                                 foodName,
-                                homeProvider.imagePath!,
+                                homeProvider.selectedImagePath!,
                                 confidence,
                               ),
                               icon: const Icon(Icons.info_outline),
@@ -245,8 +246,9 @@ class _HomeViewState extends State<_HomeView> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () =>
-                              context.read<HomeProvider>().openGallery(),
+                          onPressed: () => context
+                              .read<HomeProvider>()
+                              .selectImageFromGallery(),
                           icon: const Icon(Icons.photo_library_outlined),
                           label: const Text('Gallery'),
                           style: OutlinedButton.styleFrom(
@@ -264,8 +266,9 @@ class _HomeViewState extends State<_HomeView> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () =>
-                              context.read<HomeProvider>().openCamera(),
+                          onPressed: () => context
+                              .read<HomeProvider>()
+                              .selectImageFromCamera(),
                           icon: const Icon(Icons.camera_alt_outlined),
                           label: const Text('Camera'),
                           style: OutlinedButton.styleFrom(
@@ -285,7 +288,7 @@ class _HomeViewState extends State<_HomeView> {
                   const SizedBox(height: 12),
                   Consumer<HomeProvider>(
                     builder: (context, homeProvider, child) {
-                      if (homeProvider.imagePath != null) {
+                      if (homeProvider.selectedImagePath != null) {
                         return Column(
                           children: [
                             SizedBox(
@@ -327,12 +330,13 @@ class _HomeViewState extends State<_HomeView> {
                             child,
                           ) {
                             final canAnalyze =
-                                classificationProvider.isInitialized &&
-                                homeProvider.imagePath != null &&
-                                homeProvider.imagePath!.isNotEmpty;
+                                classificationProvider.isServiceReady &&
+                                homeProvider.selectedImagePath != null &&
+                                homeProvider.selectedImagePath!.isNotEmpty;
 
-                            return switch (classificationProvider.state) {
-                              ClassificationsLoadingState() =>
+                            return switch (classificationProvider
+                                .currentState) {
+                              FoodClassificationLoadingState() =>
                                 ElevatedButton.icon(
                                   onPressed: null,
                                   icon: SizedBox(
@@ -344,7 +348,9 @@ class _HomeViewState extends State<_HomeView> {
                                   ),
                                   label: Text('Analyzing...'),
                                 ),
-                              ClassificationsErrorState(error: var error) =>
+                              FoodClassificationErrorState(
+                                errorMessage: var error,
+                              ) =>
                                 Column(
                                   children: [
                                     Text(
@@ -359,7 +365,7 @@ class _HomeViewState extends State<_HomeView> {
                                     ElevatedButton.icon(
                                       onPressed: canAnalyze
                                           ? () => _analyzeImage(
-                                              homeProvider.imagePath!,
+                                              homeProvider.selectedImagePath!,
                                             )
                                           : null,
                                       icon: const Icon(Icons.refresh),
@@ -369,12 +375,13 @@ class _HomeViewState extends State<_HomeView> {
                                 ),
                               _ => ElevatedButton.icon(
                                 onPressed: canAnalyze
-                                    ? () =>
-                                          _analyzeImage(homeProvider.imagePath!)
+                                    ? () => _analyzeImage(
+                                        homeProvider.selectedImagePath!,
+                                      )
                                     : null,
                                 icon: const Icon(Icons.analytics_outlined),
                                 label: Text(
-                                  classificationProvider.isInitialized
+                                  classificationProvider.isServiceReady
                                       ? 'Analyze'
                                       : 'Initializing...',
                                 ),

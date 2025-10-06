@@ -1,39 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:tabetect/data/api/api_service.dart';
-import 'package:tabetect/static/detail_result_state.dart';
+import 'package:tabetect/static/food_detail_state.dart';
 import 'package:tabetect/static/global_state.dart';
 
-class DetailProvider extends ChangeNotifier {
-  final ApiService _service;
+class FoodDetailProvider extends ChangeNotifier {
+  final ApiService _foodApiService;
   final GlobalState _globalState;
 
-  DetailProvider(this._service, this._globalState);
+  FoodDetailProvider(this._foodApiService, this._globalState);
 
-  DetailResultState _resultState = DetailNoneResultState();
+  FoodDetailState _currentDetailState = FoodDetailIdleState();
 
-  DetailResultState get resultState => _resultState;
+  FoodDetailState get currentDetailState => _currentDetailState;
 
-  Future<void> fetchDetailFood(String name) async {
+  Future<void> loadFoodDetails(String foodName) async {
     try {
-      _resultState = DetailLoadingResultState();
+      _currentDetailState = FoodDetailLoadingState();
       notifyListeners();
       _globalState.setLoading(true);
       _globalState.clearError();
 
-      final result = await _service.getFoodDetail(name);
-      if (result.meals.isEmpty) {
-        _resultState = DetailErrorResultState(
+      final foodResponse = await _foodApiService.getFoodDetail(foodName);
+      if (foodResponse.meals.isEmpty) {
+        _currentDetailState = FoodDetailErrorState(
           "No detailed information found for this food",
         );
         notifyListeners();
-        _globalState.setError("Food details not available in themealdb");
+        _globalState.setError("Food details not available in TheMealDB");
       } else {
-        _resultState = DetailLoadedResultState(result.meals);
+        _currentDetailState = FoodDetailLoadedState(foodResponse.meals);
         notifyListeners();
       }
-    } catch (e) {
-      final errorMessage = "Failed to load food details: ${e.toString()}";
-      _resultState = DetailErrorResultState(errorMessage);
+    } catch (error) {
+      final errorMessage = "Failed to load food details: ${error.toString()}";
+      _currentDetailState = FoodDetailErrorState(errorMessage);
       notifyListeners();
       _globalState.setError(errorMessage);
     } finally {
@@ -41,8 +41,8 @@ class DetailProvider extends ChangeNotifier {
     }
   }
 
-  void reset() {
-    _resultState = DetailNoneResultState();
+  void clearFoodDetails() {
+    _currentDetailState = FoodDetailIdleState();
     notifyListeners();
   }
 }

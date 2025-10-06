@@ -4,42 +4,46 @@ import 'package:image_picker/image_picker.dart';
 import 'package:tabetect/styles/colors/app_color.dart';
 
 class HomeProvider extends ChangeNotifier {
-  String? imagePath;
-  XFile? imageFile;
+  String? selectedImagePath;
+  XFile? selectedImageFile;
 
-  void _setImages(XFile? value) {
-    imageFile = value;
-    imagePath = value?.path;
+  void _updateSelectedImage(XFile? newImageFile) {
+    selectedImageFile = newImageFile;
+    selectedImagePath = newImageFile?.path;
     notifyListeners();
   }
 
-  Future<void> openCamera() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+  Future<void> selectImageFromCamera() async {
+    final imagePicker = ImagePicker();
+    final capturedImage = await imagePicker.pickImage(
+      source: ImageSource.camera,
+    );
 
-    if (pickedFile != null) {
-      _setImages(pickedFile);
+    if (capturedImage != null) {
+      _updateSelectedImage(capturedImage);
     }
   }
 
-  Future<void> openGallery() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+  Future<void> selectImageFromGallery() async {
+    final imagePicker = ImagePicker();
+    final selectedImage = await imagePicker.pickImage(
+      source: ImageSource.gallery,
+    );
 
-    if (pickedFile != null) {
-      _setImages(pickedFile);
+    if (selectedImage != null) {
+      _updateSelectedImage(selectedImage);
     }
   }
 
-  Future<void> cropExistingImage() async {
-    if (imageFile != null) {
-      await _cropAndSetImage(imageFile!);
+  Future<void> cropCurrentImage() async {
+    if (selectedImageFile != null) {
+      await _cropImageAndUpdate(selectedImageFile!);
     }
   }
 
-  Future<void> _cropAndSetImage(XFile imageFile) async {
+  Future<void> _cropImageAndUpdate(XFile imageFile) async {
     try {
-      final CroppedFile? croppedFile = await ImageCropper().cropImage(
+      final croppedImageFile = await ImageCropper().cropImage(
         sourcePath: imageFile.path,
         uiSettings: [
           AndroidUiSettings(
@@ -77,8 +81,8 @@ class HomeProvider extends ChangeNotifier {
         ],
       );
 
-      if (croppedFile != null) {
-        _setImages(XFile(croppedFile.path));
+      if (croppedImageFile != null) {
+        _updateSelectedImage(XFile(croppedImageFile.path));
       }
     } catch (e) {
       debugPrint('Failed to crop image: $e');
