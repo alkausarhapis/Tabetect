@@ -86,6 +86,13 @@ class _HomeViewState extends State<_HomeView> {
     );
   }
 
+  void _cropCurrentImage() {
+    final homeProvider = context.read<HomeProvider>();
+    if (homeProvider.imageFile != null) {
+      homeProvider.cropExistingImage();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -276,6 +283,39 @@ class _HomeViewState extends State<_HomeView> {
                     ],
                   ),
                   const SizedBox(height: 12),
+                  Consumer<HomeProvider>(
+                    builder: (context, homeProvider, child) {
+                      if (homeProvider.imagePath != null) {
+                        return Column(
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () => _cropCurrentImage(),
+                                icon: const Icon(Icons.crop),
+                                label: const Text('Crop Image'),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  side: BorderSide(
+                                    color: AppColor.primaryRed.color,
+                                    width: 1.5,
+                                  ),
+                                  foregroundColor: AppColor.primaryRed.color,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                   SizedBox(
                     width: double.infinity,
                     child: Consumer2<ImageClassificationProvider, HomeProvider>(
