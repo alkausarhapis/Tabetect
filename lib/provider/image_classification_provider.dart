@@ -2,75 +2,78 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:tabetect/service/image_classification_service.dart';
-import 'package:tabetect/static/classifications_state.dart';
+import 'package:tabetect/static/food_classification_state.dart';
 
 class ImageClassificationProvider extends ChangeNotifier {
-  final ImageClassificationService _service;
+  final ImageClassificationService _classificationService;
 
-  ClassificationsState _state = ClassificationsNoneState();
-  ClassificationsState get state => _state;
+  FoodClassificationState _currentState = FoodClassificationIdleState();
+  FoodClassificationState get currentState => _currentState;
 
-  bool _isInitialized = false;
-  bool get isInitialized => _isInitialized;
+  bool _isServiceReady = false;
+  bool get isServiceReady => _isServiceReady;
 
-  ImageClassificationProvider(this._service) {
-    _initializeService();
+  ImageClassificationProvider(this._classificationService) {
+    _initializeClassificationService();
   }
 
-  Future<void> _initializeService() async {
-    _state = ClassificationsLoadingState();
+  Future<void> _initializeClassificationService() async {
+    _currentState = FoodClassificationLoadingState();
     notifyListeners();
 
     try {
-      await _service.initHelper();
-      _isInitialized = true;
-      _state = ClassificationsNoneState();
-    } catch (e) {
-      _state = ClassificationsErrorState(
-        'Failed to initialize: ${e.toString()}',
+      await _classificationService.initHelper();
+      _isServiceReady = true;
+      _currentState = FoodClassificationIdleState();
+    } catch (error) {
+      _currentState = FoodClassificationErrorState(
+        'Initialization failed: ${error.toString()}',
       );
     }
     notifyListeners();
   }
 
-  Map<String, num> _classifications = {};
+  Map<String, num> _foodClassificationResults = {};
 
-  Map<String, num> get classification => Map.fromEntries(
-    (_classifications.entries.toList()
+  Map<String, num> get topFoodPrediction => Map.fromEntries(
+    (_foodClassificationResults.entries.toList()
           ..sort((a, b) => a.value.compareTo(b.value)))
         .reversed
         .take(1),
   );
 
-  Future<void> runClassifications(Uint8List bytes) async {
-    if (!_isInitialized) {
-      _state = ClassificationsErrorState(
-        'Service is not initialized yet. Please wait.',
+  Future<void> classifyFoodImage(Uint8List imageBytes) async {
+    if (!_isServiceReady) {
+      _currentState = FoodClassificationErrorState(
+        'Classification service is still initializing. Please wait.',
       );
       notifyListeners();
       return;
     }
 
-    _state = ClassificationsLoadingState();
+    _currentState = FoodClassificationLoadingState();
     notifyListeners();
 
     try {
-      _classifications = await _service.inferenceImageFileIsolate(bytes);
-      _state = ClassificationsLoadedState(_classifications);
-    } catch (e) {
-      _state = ClassificationsErrorState(e.toString());
+      _foodClassificationResults = await _classificationService
+          .inferenceImageFileIsolate(imageBytes);
+      _currentState = FoodClassificationCompletedState(
+        _foodClassificationResults,
+      );
+    } catch (error) {
+      _currentState = FoodClassificationErrorState(error.toString());
     }
 
     notifyListeners();
   }
 
-  Future<void> close() async {
-    await _service.close();
+  Future<void> closeClassificationService() async {
+    await _classificationService.close();
   }
 
-  void reset() {
-    _classifications = {};
-    _state = ClassificationsNoneState();
+  void resetClassificationResults() {
+    _foodClassificationResults = {};
+    _currentState = FoodClassificationIdleState();
     notifyListeners();
   }
 }
