@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tabetect/styles/theme/app_theme.dart';
 
 void main() {
   runApp(const MainApp());
@@ -9,10 +10,19 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
+      title: 'Tabetect',
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode:
+          ThemeMode.system, // Automatically switches based on system setting
       home: Scaffold(
+        appBar: AppBar(title: const Text('Tabetect')),
         body: Center(
-          child: Text('Hello World!'),
+          child: ElevatedButton(
+            onPressed: () {},
+            child: const Text('Press Me'),
+          ),
         ),
       ),
     );
